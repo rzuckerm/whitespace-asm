@@ -1,9 +1,10 @@
 import argparse
 import ast
 import sys
-from dataclasses import dataclass
-from enum import IntEnum, IntFlag
+from dataclasses import dataclass, field
+from enum import IntFlag
 from pathlib import Path
+from typing import Callable
 
 
 # Whitespace parameter type
@@ -96,80 +97,92 @@ def assemble(input_contents: str) -> tuple[str, list[str]]:
 
 
 @dataclass
-class ParsedLine:
+class TokenizerState:
+    line: str
+    idx: int = 0
+
+    def curr(self) -> str:
+        ch = self.get_char()
+        self.unget_char(ch)
+        return ch
+
+    def next(self) -> str:
+        ch = ""
+        if self.idx < len(self.line):
+            ch = self.line[self.idx]
+            self.idx += 1
+
+        return ch
+
+    def get_char(self) -> str:
+        ch = self.next()
+        if ch == "\\":
+            ch += self.next()
+
+        return ch
+
+    def unget_char(self, ch: str):
+        self.idx = max(0, self.idx - len(ch))
+
+    def take_while(self, pred: Callable[[str], bool]) -> str:
+        token = ""
+        while (ch := self.get_char()) and pred(ch):
+            token += ch
+
+        self.unget_char(ch)
+        return token
+
+    def take_until(self, pred: Callable[[str], bool]) -> str:
+        token = ""
+        while ch := self.get_char():
+            token += ch
+            if pred(ch):
+                break
+
+        return token
+
+
+def tokenize_line(line: str) -> list[str]:
+    state = TokenizerState(line)
+    tokens = []
+    while token := get_next_token(state):
+        tokens.append(token)
+
+    return tokens
+
+
+def get_next_token(state: TokenizerState) -> str:
+    token = ""
+    state.take_while(lambda ch: ch in " \t")
+    if state.curr() == ";":
+        token += state.take_while(lambda _: True)
+
+    while (ch := state.curr()) and ch not in " ;\t":
+        if ch == "'":
+            token += state.get_char() + state.take_until(lambda ch: ch == "'")
+        else:
+            token += state.take_while(lambda ch: ch not in " \t';")
+
+    return token.strip()
+
+
+@dataclass
+class ParsedCommand:
     keyword: str = ""
-    param: str = ""
+    params: list[str] = field(default_factory=list)
     comment: str = ""
 
 
-class ParserState(IntEnum):
-    KEYWORD = 0
-    PARAM_START = 1
-    PARAM_START_CHAR = 2
-    PARAM_BACKSLASH = 3
-    PARAM_END_CHAR = 4
-    PARAM_REST = 5
+def parse_tokens(tokens: list[str]) -> ParsedCommand:
+    command = ParsedCommand()
+    if tokens and tokens[-1].startswith(";"):
+        command.comment = tokens.pop()
 
+    if tokens:
+        command.keyword = tokens[0]
+        command.params = tokens[1:]
 
-class ParserError(Exception):
-    pass
-
-
-def parse_line(line: str) -> ParsedLine:
-    parsed_line = ParsedLine()
-    parser_state = ParserState.KEYWORD
-    line = line.strip()
-    for index, ch in enumerate(line):
-        if parser_state == ParserState.KEYWORD:
-            if ch == ";":
-                parsed_line.comment = line[index:]
-                break
-
-            if ch in (" ", "\t"):
-                parser_state = ParserState.PARAM_START
-            else:
-                parsed_line.keyword += ch
-        elif parser_state == ParserState.PARAM_START:
-            if ch == ";":
-                parsed_line.comment = line[index:]
-                break
-
-            parsed_line.param += ch
-            if ch == "'":
-                parser_state = ParserState.PARAM_START_CHAR
-            else:
-                parser_state = ParserState.PARAM_REST
-        elif parser_state == ParserState.PARAM_START_CHAR:
-            parsed_line.param += ch
-            if ch == "'":
-                parsed_line.comment = line[index + 1 :]
-                break
-
-            if ch == "\\":
-                parser_state = ParserState.PARAM_BACKSLASH
-            else:
-                parser_state = ParserState.PARAM_END_CHAR
-        elif parser_state == ParserState.PARAM_BACKSLASH:
-            parsed_line.param += ch
-            parser_state = ParserState.PARAM_END_CHAR
-        elif parser_state == ParserState.PARAM_END_CHAR:
-            parsed_line.param += ch
-            if ch == "'":
-                parsed_line.comment = line[index + 1 :]
-                break
-        else:
-            if ch in (";", " ", "\t"):
-                parsed_line.comment = line[index:]
-                break
-
-            parsed_line.param += ch
-
-    parsed_line.param = parsed_line.param.strip()
-    parsed_line.comment = parsed_line.comment.strip()
-    if parsed_line.comment and not parsed_line.comment.startswith(";"):
-        parsed_line.comment = f";{parsed_line.comment}"
-
-    return parsed_line
+    return command
 
 
 def parse_number(param: str) -> int | None:
@@ -188,25 +201,54 @@ def parse_string(param: str) -> str | None:
         value = ast.literal_eval(param)
         if isinstance(value, str):
             result = value
-    except SyntaxError:
+    except (ValueError, SyntaxError):
         pass
 
     return result
 
 
-def parse_param(param: str, param_type: WhitespaceParamType) -> str | int:
+def parse_param(param: str, param_type: WhitespaceParamType) -> tuple[str | int | None, str]:
     result: str | int | None = None
-    if param_type & WhitespaceParamType.NUMBER:
-        result = parse_number(param)
-        if result is not None:
-            return result
+    if param_type == WhitespaceParamType.NUMBER:
+        expected_type = "number"
+    elif param_type == WhitespaceParamType.VALUE:
+        expected_type = "number or single character"
+    else:
+        expected_type = "number, single character, or multiple characters"
 
-        if param_type == WhitespaceParamType.NUMBER:
-            raise ParserError(f"Number expected, but {param}")
-
-    if param_type in [WhitespaceParamType.VALUE, WhitespaceParamType.LABEL]:
+    result = parse_number(param)
+    if result is None and param_type in [WhitespaceParamType.VALUE, WhitespaceParamType.LABEL]:
         result = parse_string(param)
-        return result
+        if result is not None and (
+            not result or (param_type == WhitespaceParamType.VALUE and len(result) != 1)
+        ):
+            result = None
+
+    error = ""
+    if result is None:
+        error = f"Expected {expected_type}, but got {param} instead"
+
+    return result, error
+
+
+def translate_number(param: int) -> str:
+    sign = SPACE if param >= 0 else TAB
+    return sign + bin(abs(param))[2:].replace("0", SPACE).replace("1", TAB) + LF
+
+
+def translate_string(param: str) -> str:
+    value = 0
+    for ch in param:
+        value = value * 256 + ord(ch)
+
+    return translate_number(value)
+
+
+def translate_param(param: int | str) -> str:
+    if isinstance(param, int):
+        return translate_number(param)
+
+    return translate_string(param)
 
 
 def format_comment(comment: str) -> str:

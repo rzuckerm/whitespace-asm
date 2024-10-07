@@ -56,96 +56,102 @@ def test_main_with_errors(mock_assemble, in_temp_dir, capsys):
 
 
 @pytest.mark.parametrize(
-    "line,expected_keyword,expected_param,expected_comment",
+    "line,expected_tokens",
     [
-        pytest.param("", "", "", "", id="empty-line"),
-        pytest.param(" \t", "", "", "", id="whitespace-only"),
+        pytest.param("", [], id="empty-line"),
+        pytest.param(" \t", [], id="whitespace-only"),
         pytest.param(
-            " ;Output 'Hello, World!\\n' ", "", "", ";Output 'Hello, World!\\n'", id="comment-only"
+            " ;Output 'Hello, World!\\n' ", [";Output 'Hello, World!\\n'"], id="comment-only"
         ),
-        pytest.param("hello", "hello", "", "", id="keyword-only"),
+        pytest.param("hello", ["hello"], id="keyword-only"),
         pytest.param(
             "whatever;This is a comment",
-            "whatever",
-            "",
-            ";This is a comment",
+            ["whatever", ";This is a comment"],
             id="keyword-no-space-comment",
         ),
         pytest.param(
             "stuff ;This is a comment",
-            "stuff",
-            "",
-            ";This is a comment",
+            ["stuff", ";This is a comment"],
             id="keyword-space-comment",
         ),
         pytest.param(
             "nonsense\t;My comment",
-            "nonsense",
-            "",
-            ";My comment",
+            ["nonsense", ";My comment"],
             id="keyword-tab-comment",
         ),
-        pytest.param("push 1234", "push", "1234", "", id="keyword-num-param"),
-        pytest.param("jump ''", "jump", "''", "", id="keyword-empty-char-param"),
-        pytest.param("jump 'H'", "jump", "'H'", "", id="keyword-char-param"),
-        pytest.param("jump ';'", "jump", "';'", "", id="keyword-semicolon-param"),
-        pytest.param("push ' '", "push", "' '", "", id="keyword-space-param"),
-        pytest.param("call '\\n'", "call", "'\\n'", "", id="keyword-newline-param"),
-        pytest.param("jgt '\\''", "jgt", "'\\''", "", id="keyword-quote-param"),
-        pytest.param("jeq 'ABC'", "jeq", "'ABC'", "", id="keyword-multichar-param"),
+        pytest.param("push 1234", ["push", "1234"], id="key-num-param"),
+        pytest.param("jump ''", ["jump", "''"], id="keyword-empty-char-param"),
+        pytest.param("jump 'H'", ["jump", "'H'"], id="keyword-char-param"),
         pytest.param(
-            "push 5555;hello", "push", "5555", ";hello", id="keyword-num-param-no-space-comment"
+            "jump ';'",
+            ["jump", "';'"],
+            id="keyword-semicolon-param",
+        ),
+        pytest.param("push ' '", ["push", "' '"], id="keyword-space-param"),
+        pytest.param("call '\\n'", ["call", "'\\n'"], id="keyword-newline-param"),
+        pytest.param("jgt '\\''", ["jgt", "'\\''"], id="keyword-quote-param"),
+        pytest.param("jeq 'ABC'", ["jeq", "'ABC'"], id="keyword-multichar-param"),
+        pytest.param(
+            "push 5555;hello", ["push", "5555", ";hello"], id="keyword-num-param-no-space-comment"
         ),
         pytest.param(
-            "push 7654 hello",
-            "push",
-            "7654",
-            ";hello",
-            id="keyword-num-param-space-no-semicolon-comment",
+            "push 7654 hello", ["push", "7654", "hello"], id="keyword-num-param-invalid-param"
         ),
         pytest.param(
             "push '\\t'What?",
-            "push",
-            "'\\t'",
-            ";What?",
-            id="keyword-char-param-no-semicolon-comment",
+            ["push", "'\\t'What?"],
+            id="keyword-tab-extra-test-param",
         ),
         pytest.param(
             "push 'x' That",
-            "push",
-            "'x'",
-            ";That",
-            id="keyword-char-param-no-semicolon-space-comment",
+            ["push", "'x'", "That"],
+            id="keyword-char-param-invalid-param",
         ),
         pytest.param(
             "push '4'\thello?",
-            "push",
-            "'4'",
-            ";hello?",
-            id="keyword-char-param-no-semicolon-tab-comment",
+            ["push", "'4'", "hello?"],
+            id="keyword-char-param-tab-invalid-param",
         ),
         pytest.param(
             "xyz 'x';comment",
-            "xyz",
-            "'x'",
-            ";comment",
+            ["xyz", "'x'", ";comment"],
             id="keyword-char-param-semicolon-no-space-comment",
         ),
         pytest.param(
-            "zyx '' this is a comment",
-            "zyx",
-            "''",
-            ";this is a comment",
-            id="keyword-empty-char-parameter-no-semicolon-comment",
+            "zyx '' this is junk",
+            ["zyx", "''", "this", "is", "junk"],
+            id="keyword-empty-char-parameter-extra-invalid-param",
+        ),
+        pytest.param("abc '", ["abc", "'"], id="keyword-unterm-char-param"),
+    ],
+)
+def test_tokenize_line(line: str, expected_tokens: list[str]):
+    tokens = asm.tokenize_line(line)
+
+    assert tokens == expected_tokens
+
+
+@pytest.mark.parametrize(
+    "tokens,expected_keyword,expected_params,expected_comment",
+    [
+        pytest.param([], "", [], "", id="no-tokens"),
+        pytest.param(["hello"], "hello", [], "", id="keyword-only"),
+        pytest.param(["good", "bye"], "good", ["bye"], "", id="keyword-one-param"),
+        pytest.param(
+            ["stuff", "and", "nonsense"], "stuff", ["and", "nonsense"], "", id="keyword-two-params"
+        ),
+        pytest.param([";Some comment"], "", [], ";Some comment", id="comment-only"),
+        pytest.param(
+            ["xyz", ";This is a comment"], "xyz", [], ";This is a comment", id="keyword-comment"
         ),
     ],
 )
-def test_parse_line(line: str, expected_keyword: str, expected_param: str, expected_comment: str):
-    parsed_line = asm.parse_line(line)
+def test_parse_tokens(tokens: list[str], expected_keyword, expected_params, expected_comment):
+    command = asm.parse_tokens(tokens)
 
-    assert parsed_line.keyword == expected_keyword
-    assert parsed_line.param == expected_param
-    assert parsed_line.comment == expected_comment
+    assert command.keyword == expected_keyword
+    assert command.params == expected_params
+    assert command.comment == expected_comment
 
 
 @pytest.mark.parametrize(
@@ -176,6 +182,7 @@ def test_parse_number(param: str, expected_result: int | None):
         pytest.param("3.14", None, id="positive-float"),
         pytest.param("-2.818", None, id="negative-float"),
         pytest.param("'a", None, id="unterminate-char"),
+        pytest.param("Hello", None, id="invalid-string"),
     ],
 )
 def test_parse_string(param: str, expected_result: str | None):
@@ -185,38 +192,90 @@ def test_parse_string(param: str, expected_result: str | None):
 
 
 @pytest.mark.parametrize(
-    "param,param_type,expected_result",
+    "param,param_type,expected_result,expected_error",
     [
-        pytest.param("5733", asm.WhitespaceParamType.NUMBER, 5733, id="positive-int-number"),
-        pytest.param("-40", asm.WhitespaceParamType.NUMBER, -40, id="negative-int-number"),
-        pytest.param("1021", asm.WhitespaceParamType.VALUE, 1021, id="positive-int-value"),
-        pytest.param("-987", asm.WhitespaceParamType.VALUE, -987, id="negative-int-value"),
-        pytest.param("75", asm.WhitespaceParamType.LABEL, 75, id="positive-int-label"),
-        pytest.param("-7656", asm.WhitespaceParamType.LABEL, -7656, id="negative-int-label"),
+        pytest.param("5733", asm.WhitespaceParamType.NUMBER, 5733, "", id="positive-int-number"),
+        pytest.param("-40", asm.WhitespaceParamType.NUMBER, -40, "", id="negative-int-number"),
+        pytest.param(
+            "'b'",
+            asm.WhitespaceParamType.NUMBER,
+            None,
+            "Expected number, but got 'b' instead",
+            id="invalid-number",
+        ),
+        pytest.param("1021", asm.WhitespaceParamType.VALUE, 1021, "", id="positive-int-value"),
+        pytest.param("-987", asm.WhitespaceParamType.VALUE, -987, "", id="negative-int-value"),
+        pytest.param("'A'", asm.WhitespaceParamType.VALUE, "A", "", id="char-value"),
+        pytest.param("'\\n'", asm.WhitespaceParamType.VALUE, "\n", "", id="newline-value"),
+        pytest.param(
+            "qwer",
+            asm.WhitespaceParamType.VALUE,
+            None,
+            "Expected number or single character, but got qwer instead",
+            id="invalid-value",
+        ),
+        pytest.param(
+            "''",
+            asm.WhitespaceParamType.VALUE,
+            None,
+            "Expected number or single character, but got '' instead",
+            id="invalid-empty-value",
+        ),
+        pytest.param(
+            "'AB'",
+            asm.WhitespaceParamType.VALUE,
+            None,
+            "Expected number or single character, but got 'AB' instead",
+            id="invalid-multi-char-value",
+        ),
+        pytest.param("'B'", asm.WhitespaceParamType.LABEL, "B", "", id="char-label"),
+        pytest.param("75", asm.WhitespaceParamType.LABEL, 75, "", id="positive-int-label"),
+        pytest.param("-7656", asm.WhitespaceParamType.LABEL, -7656, "", id="negative-int-label"),
+        pytest.param("'\\t'", asm.WhitespaceParamType.LABEL, "\t", "", id="char-tab-label"),
+        pytest.param("'HELLO'", asm.WhitespaceParamType.LABEL, "HELLO", "", id="multi-char-label"),
+        pytest.param(
+            "''",
+            asm.WhitespaceParamType.LABEL,
+            None,
+            "Expected number, single character, or multiple characters, but got '' instead",
+            id="char-empty-label",
+        ),
+        pytest.param(
+            "junk",
+            asm.WhitespaceParamType.LABEL,
+            None,
+            "Expected number, single character, or multiple characters, but got junk instead",
+            id="invalid-label",
+        ),
     ],
 )
-def test_parse_param_when_number_for_number_value_label(
-    param: str, param_type: asm.ParserError, expected_result: int
+def test_parse_param(
+    param: str,
+    param_type: asm.WhitespaceParamType,
+    expected_result: int | str | None,
+    expected_error: str,
 ):
-    result = asm.parse_param(param, param_type)
+    result, error = asm.parse_param(param, param_type)
 
     assert result == expected_result
+    assert error == expected_error
+
+
+def get_expected_result(result: str) -> str:
+    return result.replace("S", asm.SPACE).replace("T", asm.TAB).replace("L", asm.LF)
 
 
 @pytest.mark.parametrize(
-    "param,param_type,expected_result",
+    "param,expected_result",
     [
-        pytest.param("'A'", asm.WhitespaceParamType.VALUE, "A", id="char-value"),
-        pytest.param("'\\n'", asm.WhitespaceParamType.VALUE, "\n", id="newline-value"),
-        pytest.param("'B'", asm.WhitespaceParamType.VALUE, "B", id="char-label"),
-        pytest.param("'\\t'", asm.WhitespaceParamType.LABEL, "\t", id="char-tab-label"),
-        pytest.param("'HELLO'", asm.WhitespaceParamType.LABEL, "HELLO", id="multi-char-label"),
+        pytest.param(75, get_expected_result("STSSTSTTL"), id="positive-int"),
+        pytest.param(-123, get_expected_result("TTTTTSTTL"), id="negative-int"),
+        pytest.param("Z", get_expected_result("STSTTSTSL"), id="char"),
+        pytest.param("abc", get_expected_result("STTSSSSTSTTSSSTSSTTSSSTTL"), id="multi-char"),
     ],
 )
-def test_parse_param_when_char_for_value_label(
-    param: str, param_type: asm.WhitespaceParamType, expected_result: str
-):
-    result = asm.parse_param(param, param_type)
+def test_translate_param(param: str | int, expected_result: str):
+    result = asm.translate_param(param)
 
     assert result == expected_result
 
