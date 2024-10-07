@@ -1,0 +1,29 @@
+;Output 'Hello, World!'
+push 'H'
+out
+push 'e'
+out
+push 'l'
+out
+push 'l'
+out
+push 'o'
+out
+push ','
+out
+push ' '
+out
+push 'W'
+out
+push 'o'
+out
+push 'r'
+out
+push 'l'
+out
+push 'd'
+out
+push '!'
+out
+push '\n'
+out

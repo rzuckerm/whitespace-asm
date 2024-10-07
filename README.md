@@ -1,2 +1,123 @@
 # whitespace-asm
-Assembler for the Whitespace Programming Language
+
+Assembler for the [Whitespace](https://en.wikipedia.org/wiki/Whitespace_(programming_language))
+Programming Language. It generates a Whitespace program based on a file containing a set of
+keywords instead of having to type in whitespace characters.
+
+See the [Whitespace Tutorial](https://web.archive.org/web/20150618184706/http://compsoc.dur.ac.uk/whitespace/tutorial.php)
+for details on the Whitespace language.
+
+## Keywords
+
+Keywords are case-insensitive.
+
+### Stack Manipulation
+
+| Mnemonic | Parameter  | Description                                                                      |
+| -------- | ---------- | -------------------------------------------------------------------------------- |
+| `push`   | `<value>`  | Push the value onto the stack                                                    |
+| `dup`    |            | Duplicate the top item on the stack                                              |
+| `copy`   | `<number>` | Copy the nth item on the stack (given by the argument) onto the top of the stack |
+| `swap`   |            | Swap the top two items on the stack                                              |
+| `pop`    |            | Discard the top item on the stack                                                |
+| `popn`   | `<number>` | Slide n items off the stack, keeping the top item                                |
+
+### Arithmetic
+
+| Mnemonic | Parameter  | Description                                                                      |
+| -------- | ---------- | -------------------------------------------------------------------------------- |
+| `add`    |            | Addition                                                                         |
+| `sub`    |            | Subtraction                                                                      |
+| `mult`   |            | Multiplication                                                                   |
+| `div`    |            | Integer Division                                                                 |
+| `mod`    |            | Modulo                                                                           |
+
+### Heap Access
+
+| Mnemonic | Parameter  | Description                                                                      |
+| -------- | ---------- | -------------------------------------------------------------------------------- |
+| `stor`   |            | Store                                                                            |
+| `retr`   |            | Retreive                                                                         |
+
+### Flow Control
+
+| Mnemonic | Parameter  | Description                                                                      |
+| -------- | ---------- | -------------------------------------------------------------------------------- |
+| `mark`   | `<label>`  | Mark a location in the program                                                   |
+| `call`   | `<label>`  | Call a subroutine                                                                |
+| `jump`   | `<label>`  | Jump unconditionally to a label                                                  |
+| `jeq`    | `<label>`  | Jump to a label if the top of the stack is zero                                  |
+| `jlt`    | `<label>`  | Jump to a label if the top of the stack is negative                              |
+| `ret`    |            | End a subroutine and transfer control back to the caller                         |
+| `end`    |            | End the program                                                                  |
+
+### I/O
+
+| Mnemonic   | Parameter  | Description                                                                      |
+| ---------- | ---------- | -------------------------------------------------------------------------------- |
+| `out`      |            | Output the character at the top of the stack                                     |
+| `outn`     |            | Output the number at the top of the stack                                        |
+| `in`       |            | Read a character and place it in the location given by the top of the stack      |
+| `inn`      |            | Read a number and place it in the location given by the top of the stack         |
+
+### Comments
+
+Comments may be on a separate line or may be inline. Comments start with `;`. Example:
+
+```
+: This a comment
+push 'H' ;Stack = 'H'
+out      ;Output 'H'
+```
+
+## Parameters
+
+### `<number>`
+
+`<number>` is just an integer value. It may be positive or negative. Examples:
+
+- `42`
+- `-33`
+
+### `<value>`
+
+`<value>` may either be a `<number>` or a character. A character is enclosed in single quotes.
+Backslash may be used for characters like newline (`'\n'`). Examples of characters:
+
+- `' '`
+- `'H'`
+- `';'`
+- `'\n'` - Newline
+- `'\''` - Single quote
+- `'\\'` - Backslash
+
+### `<label>`
+
+`<label>` may either be a `<number>`, a character, or a string of characters. A string of
+characters is enclosed in single quotes. Examples:
+
+- `13`
+- `'X'`
+- `'ABC'`
+
+## CLI
+
+### Assemble
+
+Assemble a Whitespace program:
+
+```
+whitespace-asm <input> [-o/--out <output>]
+```
+
+where:
+
+- `<input>` is the path to the input Whitespace Assembly file
+- `<output>` is the optional path to output Whitespace file. If not specified,
+  change the extension of `<input>` to `.ws`
+
+Example:
+
+```
+whitespace-asm hello-world.wsasm hello-world.ws
+```
