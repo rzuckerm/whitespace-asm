@@ -260,7 +260,7 @@ def translate_instruction(keyword: str, params: list[str]) -> tuple[str | None, 
         error = f"{keyword} is not a valid instruction"
     elif translation_info.param_type == WhitespaceParamType.NONE and num_params != 0:
         error = f"Expected no parameters, but got {num_params}"
-    elif num_params != 0:
+    elif translation_info.param_type != WhitespaceParamType.NONE and num_params != 1:
         error = f"Expected 1 parameter, but got {num_params}"
     else:
         instruction = translation_info.command
