@@ -251,6 +251,27 @@ def translate_param(param: int | str) -> str:
     return translate_string(param)
 
 
+def translate_instruction(keyword: str, params: list[str]) -> tuple[str | None, str]:
+    instruction: str | None = None
+    error = ""
+    translation_info = TRANSLATION_TABLE.get(keyword.lower())
+    num_params = len(params)
+    if not translation_info:
+        error = f"{keyword} is not a valid instruction"
+    elif translation_info.param_type == WhitespaceParamType.NONE and num_params != 0:
+        error = f"Expected no parameters, but got {num_params}"
+    elif num_params != 0:
+        error = f"Expected 1 parameter, but got {num_params}"
+    else:
+        instruction = translation_info.command
+        if num_params:
+            value, error = parse_param(params[0], translation_info.param_type)
+            if not error:
+                instruction += translate_param(value)
+
+    return instruction, error
+
+
 def format_comment(comment: str) -> str:
     comment = comment.replace("' '", "'<space>'").replace(" ", "_")
     if not comment.endswith("_"):
