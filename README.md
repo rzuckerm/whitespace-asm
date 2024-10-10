@@ -93,12 +93,10 @@ Backslash may be used for characters like newline (`'\n'`). Examples of characte
 
 ### `<label>`
 
-`<label>` may either be a `<number>`, a character, or a string of characters. A string of
-characters is enclosed in single quotes. Examples:
+`<label>` is a number that consists of just zeros and one. Examples:
 
-- `13`
-- `'X'`
-- `'ABC'`
+- `011`
+- `10101`
 
 ## CLI
 

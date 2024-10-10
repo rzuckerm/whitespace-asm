@@ -79,18 +79,18 @@ def test_main_with_errors(mock_assemble, in_temp_dir, capsys):
             ["nonsense", ";My comment"],
             id="keyword-tab-comment",
         ),
-        pytest.param("push 1234", ["push", "1234"], id="key-num-param"),
-        pytest.param("jump ''", ["jump", "''"], id="keyword-empty-char-param"),
-        pytest.param("jump 'H'", ["jump", "'H'"], id="keyword-char-param"),
+        pytest.param("copy 1234", ["copy", "1234"], id="key-num-param"),
+        pytest.param("push ''", ["push", "''"], id="keyword-empty-char-param"),
+        pytest.param("push 'H'", ["push", "'H'"], id="keyword-char-param"),
         pytest.param(
-            "jump ';'",
-            ["jump", "';'"],
+            "push ';'",
+            ["push", "';'"],
             id="keyword-semicolon-param",
         ),
         pytest.param("push ' '", ["push", "' '"], id="keyword-space-param"),
-        pytest.param("call '\\n'", ["call", "'\\n'"], id="keyword-newline-param"),
-        pytest.param("jgt '\\''", ["jgt", "'\\''"], id="keyword-quote-param"),
-        pytest.param("jeq 'ABC'", ["jeq", "'ABC'"], id="keyword-multichar-param"),
+        pytest.param("push '\\n'", ["push", "'\\n'"], id="keyword-newline-param"),
+        pytest.param("push '\\''", ["push", "'\\''"], id="keyword-quote-param"),
+        pytest.param("push 'ABC'", ["push", "'ABC'"], id="keyword-multichar-param"),
         pytest.param(
             "push 5555;hello", ["push", "5555", ";hello"], id="keyword-num-param-no-space-comment"
         ),
@@ -192,6 +192,20 @@ def test_parse_string(param: str, expected_result: str | None):
 
 
 @pytest.mark.parametrize(
+    "param,expected_result",
+    [
+        pytest.param("0110", "0110", id="valid-binary"),
+        pytest.param("1x0001", None, id="invalid-binary-letter"),
+        pytest.param("1101211", None, id="invalid-binary-digit"),
+    ],
+)
+def test_parse_label(param: str, expected_result: str | None):
+    result = asm.parse_label(param)
+
+    assert result == expected_result
+
+
+@pytest.mark.parametrize(
     "param,param_type,expected_result,expected_error",
     [
         pytest.param("5733", asm.WhitespaceParamType.NUMBER, 5733, "", id="positive-int-number"),
@@ -228,24 +242,20 @@ def test_parse_string(param: str, expected_result: str | None):
             "Expected number or single character, but got 'AB' instead",
             id="invalid-multi-char-value",
         ),
-        pytest.param("'B'", asm.WhitespaceParamType.LABEL, "B", "", id="char-label"),
-        pytest.param("75", asm.WhitespaceParamType.LABEL, 75, "", id="positive-int-label"),
-        pytest.param("-7656", asm.WhitespaceParamType.LABEL, -7656, "", id="negative-int-label"),
-        pytest.param("'\\t'", asm.WhitespaceParamType.LABEL, "\t", "", id="char-tab-label"),
-        pytest.param("'HELLO'", asm.WhitespaceParamType.LABEL, "HELLO", "", id="multi-char-label"),
+        pytest.param("10010110", asm.WhitespaceParamType.LABEL, "10010110", "", id="valid-label"),
         pytest.param(
-            "''",
+            "10020110",
             asm.WhitespaceParamType.LABEL,
             None,
-            "Expected number, single character, or multiple characters, but got '' instead",
-            id="char-empty-label",
+            "Expected zeros and ones, but got 10020110 instead",
+            id="invalid-label-digits",
         ),
         pytest.param(
             "junk",
             asm.WhitespaceParamType.LABEL,
             None,
-            "Expected number, single character, or multiple characters, but got junk instead",
-            id="invalid-label",
+            "Expected zeros and ones, but got junk instead",
+            id="invalid-label-letters",
         ),
     ],
 )
@@ -269,16 +279,32 @@ def get_expected_result(result: str | None) -> str | None:
 
 
 @pytest.mark.parametrize(
-    "param,expected_result",
+    "param,param_type,expected_result",
     [
-        pytest.param(75, get_expected_result("STSSTSTTL"), id="positive-int"),
-        pytest.param(-123, get_expected_result("TTTTTSTTL"), id="negative-int"),
-        pytest.param("Z", get_expected_result("STSTTSTSL"), id="char"),
-        pytest.param("abc", get_expected_result("STTSSSSTSTTSSSTSSTTSSSTTL"), id="multi-char"),
+        pytest.param(
+            75,
+            asm.WhitespaceParamType.NUMBER,
+            get_expected_result("STSSTSTTL"),
+            id="num-positive-int",
+        ),
+        pytest.param(
+            -123,
+            asm.WhitespaceParamType.NUMBER,
+            get_expected_result("TTTTTSTTL"),
+            id="num-negative-int",
+        ),
+        pytest.param(
+            "Z", asm.WhitespaceParamType.VALUE, get_expected_result("STSTTSTSL"), id="char"
+        ),
+        pytest.param(
+            "00110101", asm.WhitespaceParamType.LABEL, get_expected_result("SSTTSTSTL"), id="label"
+        ),
     ],
 )
-def test_translate_param(param: str | int, expected_result: str):
-    result = asm.translate_param(param)
+def test_translate_param(
+    param: str | int, param_type: asm.WhitespaceParamType, expected_result: str
+):
+    result = asm.translate_param(param, param_type)
 
     assert result == expected_result
 
@@ -360,9 +386,34 @@ def test_translate_param(param: str | int, expected_result: str):
         pytest.param(
             "copy", ["'X'"], None, "Expected number, but got 'X' instead", id="copy-invalid"
         ),
-        pytest.param("label", ["1"], "LSSTL", "", id="label-num"),
-        pytest.param("label", ["'a'"], "LSSTTSSSSTL", "", id="label-char"),
-        pytest.param("label", ["'xy'"], "LSSTTTTSSSSTTTTSSTL", "", id="label-multi-char"),
+        pytest.param("label", ["0101"], "LSSSTSTL", "", id="label-valid"),
+        pytest.param(
+            "label",
+            ["'a'"],
+            None,
+            "Expected zeros and ones, but got 'a' instead",
+            id="label-invalid",
+        ),
+        pytest.param("call", ["11000"], "LSTTTSSSL", "", id="call-valid"),
+        pytest.param(
+            "call", ["2"], None, "Expected zeros and ones, but got 2 instead", id="call-invalid"
+        ),
+        pytest.param("jump", ["0110"], "LSLSTTSL", "", id="jump-valid"),
+        pytest.param(
+            "jump", ["X"], None, "Expected zeros and ones, but got X instead", id="jump-invalid"
+        ),
+        pytest.param("jumpz", ["1010"], "LTSTSTSL", "", id="jumpz-valid"),
+        pytest.param(
+            "jumpz",
+            ["123"],
+            None,
+            "Expected zeros and ones, but got 123 instead",
+            id="jumpz-invalid",
+        ),
+        pytest.param("jumpn", ["000111"], "LTTSSSTTTL", "", id="jumpn-valid"),
+        pytest.param(
+            "jumpn", ["5"], None, "Expected zeros and ones, but got 5 instead", id="jumpn-invalid"
+        ),
     ],
 )
 def test_translate_instruction(

@@ -2,19 +2,17 @@ import argparse
 import ast
 import sys
 from dataclasses import dataclass, field
-from enum import IntFlag
+from enum import Enum
 from pathlib import Path
 from typing import Callable
 
 
 # Whitespace parameter type
-class WhitespaceParamType(IntFlag):
-    NONE = 0x00
-    NUMBER = 0x01
-    CHAR = 0x02
-    VALUE = NUMBER | CHAR
-    MULTI_CHAR = 0x04
-    LABEL = VALUE | MULTI_CHAR
+class WhitespaceParamType(Enum):
+    NONE = 0
+    NUMBER = 1
+    VALUE = 2
+    LABEL = 3
 
 
 # Whitespace command information
@@ -212,22 +210,35 @@ def parse_string(param: str) -> str | None:
     return result
 
 
+def parse_value(param: str) -> int | str | None:
+    result = parse_number(param)
+    if result is None:
+        result = parse_string(param)
+        if result is not None and len(result) != 1:
+            result = None
+
+    return result
+
+
+def parse_label(param: str) -> str | None:
+    result: str | None = None
+    if param and all(ch in "01" for ch in param):
+        result = param
+
+    return result
+
+
 def parse_param(param: str, param_type: WhitespaceParamType) -> tuple[str | int | None, str]:
     result: str | int | None = None
     if param_type == WhitespaceParamType.NUMBER:
         expected_type = "number"
+        result = parse_number(param)
     elif param_type == WhitespaceParamType.VALUE:
         expected_type = "number or single character"
+        result = parse_value(param)
     else:
-        expected_type = "number, single character, or multiple characters"
-
-    result = parse_number(param)
-    if result is None and param_type in [WhitespaceParamType.VALUE, WhitespaceParamType.LABEL]:
-        result = parse_string(param)
-        if result is not None and (
-            not result or (param_type == WhitespaceParamType.VALUE and len(result) != 1)
-        ):
-            result = None
+        expected_type = "zeros and ones"
+        result = parse_label(param)
 
     error = ""
     if result is None:
@@ -242,14 +253,17 @@ def translate_number(param: int) -> str:
 
 
 def translate_string(param: str) -> str:
-    value = 0
-    for ch in param:
-        value = value * 256 + ord(ch)
-
-    return translate_number(value)
+    return translate_number(ord(param[0]))
 
 
-def translate_param(param: int | str) -> str:
+def translate_label(param: str) -> str:
+    return param.replace("0", SPACE).replace("1", TAB) + LF
+
+
+def translate_param(param: int | str, param_type: WhitespaceParamType) -> str:
+    if param_type == WhitespaceParamType.LABEL:
+        return translate_label(param)
+
     if isinstance(param, int):
         return translate_number(param)
 
@@ -269,20 +283,14 @@ def translate_instruction(keyword: str, params: list[str]) -> tuple[str | None, 
     elif translation_info.param_type != WhitespaceParamType.NONE and num_params != 1:
         error = f"Expected 1 parameter for {keyword_lower}, but got {num_params}"
     else:
-        instruction = translation_info.command
         if num_params:
             value, error = parse_param(params[0], translation_info.param_type)
-            if error:
-                instruction = None
-            else:
-                param_value = translate_param(value)
-                if (
-                    translation_info.param_type == WhitespaceParamType.LABEL
-                    and param_value.startswith("S")
-                ):
-                    param_value = param_value.replace(SPACE, "", 1)
-
-                instruction += param_value
+            if not error:
+                instruction = translation_info.command + translate_param(
+                    value, translation_info.param_type
+                )
+        else:
+            instruction = translation_info.command
 
     return instruction, error
 
