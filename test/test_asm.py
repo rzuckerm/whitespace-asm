@@ -261,7 +261,10 @@ def test_parse_param(
     assert error == expected_error
 
 
-def get_expected_result(result: str) -> str:
+def get_expected_result(result: str | None) -> str | None:
+    if result is None:
+        return None
+
     return result.replace("S", asm.SPACE).replace("T", asm.TAB).replace("L", asm.LF)
 
 
@@ -281,6 +284,103 @@ def test_translate_param(param: str | int, expected_result: str):
 
 
 @pytest.mark.parametrize(
+    "keyword,params,expected_instruction,expected_error",
+    [
+        pytest.param("junk", [], None, "Invalid instruction junk", id="invalid-keyword"),
+    ]
+    + [
+        pytest.param(
+            keyword,
+            params,
+            None,
+            f"Expected 1 parameter for {keyword}, but got {len(params)}",
+            id=f"{keyword}-{id_suffix}",
+        )
+        for keyword in ["push", "copy", "label", "call", "jump", "jumpz", "jumpn"]
+        for params, id_suffix in [([], "too-few"), (["1", "'x'"], "too-many")]
+    ]
+    + [
+        pytest.param(
+            keyword,
+            params,
+            None,
+            f"Expected no parameters for {keyword}, but got {len(params)}",
+            id=f"{keyword}-too-many-{len(params)}",
+        )
+        for keyword in [
+            "dup",
+            "swap",
+            "pop",
+            "slide",
+            "add",
+            "sub",
+            "div",
+            "mod",
+            "store",
+            "retr",
+            "ret",
+            "end",
+            "outc",
+            "outn",
+            "inc",
+            "inn",
+        ]
+        for params in [["'a'"], ["'q'", "5"]]
+    ]
+    + [
+        pytest.param("dup", [], "SLS", "", id="dup"),
+        pytest.param("swap", [], "SLT", "", id="swap"),
+        pytest.param("pop", [], "SLL", "", id="pop"),
+        pytest.param("slide", [], "STL", "", id="slide"),
+        pytest.param("add", [], "TSSS", "", id="add"),
+        pytest.param("sub", [], "TSST", "", id="sub"),
+        pytest.param("mult", [], "TSSL", "", id="mult"),
+        pytest.param("div", [], "TSTS", "", id="div"),
+        pytest.param("mod", [], "TSTT", "", id="mod"),
+        pytest.param("store", [], "TTS", "", id="store"),
+        pytest.param("retr", [], "TTT", "", id="retr"),
+        pytest.param("ret", [], "LTL", "", id="ret"),
+        pytest.param("end", [], "LLL", "", id="end"),
+        pytest.param("outc", [], "TLSS", "", id="outc"),
+        pytest.param("outn", [], "TLST", "", id="outn"),
+        pytest.param("inc", [], "TLTS", "", id="inc"),
+        pytest.param("inn", [], "TLTT", "", id="inn"),
+        pytest.param("push", ["33"], "SSSTSSSSTL", "", id="push-pos-num"),
+        pytest.param("push", ["-25"], "SSTTTSSTL", "", id="push-neg-num"),
+        pytest.param("push", ["'X'"], "SSSTSTTSSSL", "", id="push-char"),
+        pytest.param(
+            "push",
+            ["x"],
+            None,
+            "Expected number or single character, but got x instead",
+            id="push-invalid",
+        ),
+        pytest.param("copy", ["8"], "STSSTSSSL", "", id="copy-pos-num"),
+        pytest.param("copy", ["-7"], "STSTTTTL", "", id="copy-neg-num"),
+        pytest.param(
+            "copy", ["'X'"], None, "Expected number, but got 'X' instead", id="copy-invalid"
+        ),
+        pytest.param("label", ["1"], "LSSTL", "", id="label-num"),
+        pytest.param("label", ["'a'"], "LSSTTSSSSTL", "", id="label-char"),
+        pytest.param("label", ["'xy'"], "LSSTTTTSSSSTTTTSSTL", "", id="label-multi-char"),
+    ],
+)
+def test_translate_instruction(
+    keyword: str, params: list[str], expected_instruction: str | None, expected_error: str
+):
+    instruction, error = asm.translate_instruction(keyword, params)
+
+    expected_instruction = get_expected_result(expected_instruction)
+    assert instruction == expected_instruction
+    assert error == expected_error
+
+    instruction, error = asm.translate_instruction(keyword.upper(), params)
+
+    assert instruction == expected_instruction
+    assert error == expected_error
+
+
+@pytest.mark.parametrize(
     "comment,expected_comment",
     [
         pytest.param(";no", ";no_", id="no-space"),
@@ -292,6 +392,7 @@ def test_translate_param(param: str | int, expected_result: str):
             ";_Output_'Hello,_World,_and_welcome!'_",
             id="space-string",
         ),
+        pytest.param(";\tWhatever", ";_Whatever_", id="tab-no-trailing-space"),
     ],
 )
 def test_format_comment(comment, expected_comment):

@@ -44,7 +44,7 @@ TRANSLATION_TABLE: dict[str, WhitespaceInfo] = {
     "copy": WhitespaceInfo(command=STACK + TAB + SPACE, param_type=WhitespaceParamType.NUMBER),
     "swap": WhitespaceInfo(command=STACK + LF + TAB),
     "pop": WhitespaceInfo(command=STACK + LF + LF),
-    "popn": WhitespaceInfo(command=STACK + TAB + LF),
+    "slide": WhitespaceInfo(command=STACK + TAB + LF),
     # Arithmetic
     "add": WhitespaceInfo(command=MATH + SPACE + SPACE),
     "sub": WhitespaceInfo(command=MATH + SPACE + TAB),
@@ -52,16 +52,21 @@ TRANSLATION_TABLE: dict[str, WhitespaceInfo] = {
     "div": WhitespaceInfo(command=MATH + TAB + SPACE),
     "mod": WhitespaceInfo(command=MATH + TAB + TAB),
     # Heap Access
-    "stor": WhitespaceInfo(command=HEAP + SPACE),
+    "store": WhitespaceInfo(command=HEAP + SPACE),
     "retr": WhitespaceInfo(command=HEAP + TAB),
     # Flow Control
-    "mark": WhitespaceInfo(command=FLOW + SPACE + SPACE),
-    "call": WhitespaceInfo(command=FLOW + SPACE + TAB),
+    "label": WhitespaceInfo(command=FLOW + SPACE + SPACE, param_type=WhitespaceParamType.LABEL),
+    "call": WhitespaceInfo(command=FLOW + SPACE + TAB, param_type=WhitespaceParamType.LABEL),
     "jump": WhitespaceInfo(command=FLOW + SPACE + LF, param_type=WhitespaceParamType.LABEL),
-    "jeq": WhitespaceInfo(command=FLOW + TAB + SPACE, param_type=WhitespaceParamType.LABEL),
-    "jlt": WhitespaceInfo(command=FLOW + TAB + TAB, param_type=WhitespaceParamType.LABEL),
+    "jumpz": WhitespaceInfo(command=FLOW + TAB + SPACE, param_type=WhitespaceParamType.LABEL),
+    "jumpn": WhitespaceInfo(command=FLOW + TAB + TAB, param_type=WhitespaceParamType.LABEL),
     "ret": WhitespaceInfo(command=FLOW + TAB + LF),
     "end": WhitespaceInfo(command=FLOW + LF + LF),
+    # I/O
+    "outc": WhitespaceInfo(command=IO + SPACE + SPACE),
+    "outn": WhitespaceInfo(command=IO + SPACE + TAB),
+    "inc": WhitespaceInfo(command=IO + TAB + SPACE),
+    "inn": WhitespaceInfo(command=IO + TAB + TAB),
 }
 
 
@@ -254,26 +259,36 @@ def translate_param(param: int | str) -> str:
 def translate_instruction(keyword: str, params: list[str]) -> tuple[str | None, str]:
     instruction: str | None = None
     error = ""
-    translation_info = TRANSLATION_TABLE.get(keyword.lower())
+    keyword_lower = keyword.lower()
+    translation_info = TRANSLATION_TABLE.get(keyword_lower)
     num_params = len(params)
     if not translation_info:
-        error = f"{keyword} is not a valid instruction"
+        error = f"Invalid instruction {keyword_lower}"
     elif translation_info.param_type == WhitespaceParamType.NONE and num_params != 0:
-        error = f"Expected no parameters, but got {num_params}"
+        error = f"Expected no parameters for {keyword_lower}, but got {num_params}"
     elif translation_info.param_type != WhitespaceParamType.NONE and num_params != 1:
-        error = f"Expected 1 parameter, but got {num_params}"
+        error = f"Expected 1 parameter for {keyword_lower}, but got {num_params}"
     else:
         instruction = translation_info.command
         if num_params:
             value, error = parse_param(params[0], translation_info.param_type)
-            if not error:
-                instruction += translate_param(value)
+            if error:
+                instruction = None
+            else:
+                param_value = translate_param(value)
+                if (
+                    translation_info.param_type == WhitespaceParamType.LABEL
+                    and param_value.startswith("S")
+                ):
+                    param_value = param_value.replace(SPACE, "", 1)
+
+                instruction += param_value
 
     return instruction, error
 
 
 def format_comment(comment: str) -> str:
-    comment = comment.replace("' '", "'<space>'").replace(" ", "_")
+    comment = comment.replace("' '", "'<space>'").replace(" ", "_").replace("\t", "_")
     if not comment.endswith("_"):
         comment += "_"
 

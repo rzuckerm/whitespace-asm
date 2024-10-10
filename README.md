@@ -20,7 +20,7 @@ Keywords are case-insensitive.
 | `copy`   | `<number>` | Copy the nth item on the stack (given by the argument) onto the top of the stack |
 | `swap`   |            | Swap the top two items on the stack                                              |
 | `pop`    |            | Discard the top item on the stack                                                |
-| `popn`   | `<number>` | Slide n items off the stack, keeping the top item                                |
+| `slide`  | `<number>` | Slide n items off the stack, keeping the top item                                |
 
 ### Arithmetic
 
@@ -36,18 +36,18 @@ Keywords are case-insensitive.
 
 | Mnemonic | Parameter  | Description                                                                      |
 | -------- | ---------- | -------------------------------------------------------------------------------- |
-| `stor`   |            | Store                                                                            |
+| `store`  |            | Store                                                                            |
 | `retr`   |            | Retreive                                                                         |
 
 ### Flow Control
 
 | Mnemonic | Parameter  | Description                                                                      |
 | -------- | ---------- | -------------------------------------------------------------------------------- |
-| `mark`   | `<label>`  | Mark a location in the program                                                   |
+| `label`  | `<label>`  | Mark a location in the program                                                   |
 | `call`   | `<label>`  | Call a subroutine                                                                |
 | `jump`   | `<label>`  | Jump unconditionally to a label                                                  |
-| `jeq`    | `<label>`  | Jump to a label if the top of the stack is zero                                  |
-| `jlt`    | `<label>`  | Jump to a label if the top of the stack is negative                              |
+| `jumpz`  | `<label>`  | Jump to a label if the top of the stack is zero                                  |
+| `jumpn`  | `<label>`  | Jump to a label if the top of the stack is negative                              |
 | `ret`    |            | End a subroutine and transfer control back to the caller                         |
 | `end`    |            | End the program                                                                  |
 
@@ -55,9 +55,9 @@ Keywords are case-insensitive.
 
 | Mnemonic   | Parameter  | Description                                                                      |
 | ---------- | ---------- | -------------------------------------------------------------------------------- |
-| `out`      |            | Output the character at the top of the stack                                     |
+| `outc`     |            | Output the character at the top of the stack                                     |
 | `outn`     |            | Output the number at the top of the stack                                        |
-| `in`       |            | Read a character and place it in the location given by the top of the stack      |
+| `inc`      |            | Read a character and place it in the location given by the top of the stack      |
 | `inn`      |            | Read a number and place it in the location given by the top of the stack         |
 
 ### Comments
