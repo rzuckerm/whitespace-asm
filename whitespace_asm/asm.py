@@ -36,6 +36,8 @@ IO = TAB + LF  # I/O
 
 # Key is keyword, value is information about Whitespace command
 TRANSLATION_TABLE: dict[str, WhitespaceInfo] = {
+    # Comment
+    "": WhitespaceInfo(command=""),
     # Stack Manipulation
     "push": WhitespaceInfo(command=STACK + SPACE, param_type=WhitespaceParamType.VALUE),
     "dup": WhitespaceInfo(command=STACK + LF + SPACE),
@@ -96,6 +98,15 @@ def main(args: list | None = None):
 def assemble(input_contents: str) -> tuple[str, list[str]]:
     output_contents = ""
     errors = []
+    for line_num, line in enumerate(input_contents.splitlines(), start=1):
+        tokens = tokenize_line(line)
+        command = parse_tokens(tokens)
+        instruction, error = translate_instruction(command.keyword, command.params)
+        if error:
+            errors.append(f"Line {line_num}: {error}")
+        else:
+            output_contents += instruction
+
     return output_contents, errors
 
 

@@ -354,6 +354,7 @@ def test_translate_param(
         for params in [["'a'"], ["'q'", "5"]]
     ]
     + [
+        pytest.param("", [], "", "", id="comment"),
         pytest.param("dup", [], "SLS", "", id="dup"),
         pytest.param("swap", [], "SLT", "", id="swap"),
         pytest.param("pop", [], "SLL", "", id="pop"),

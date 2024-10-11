@@ -1,29 +1,30 @@
 ;Output 'Hello, World!'
 push 'H'
-out
+outc
 push 'e'
-out
+outc
 push 'l'
-out
+outc
 push 'l'
-out
+outc
 push 'o'
-out
+outc
 push ','
-out
+outc
 push ' '
-out
+outc
 push 'W'
-out
+outc
 push 'o'
-out
+outc
 push 'r'
-out
+outc
 push 'l'
-out
+outc
 push 'd'
-out
+outc
 push '!'
-out
+outc
 push '\n'
-out
+outc
+end
