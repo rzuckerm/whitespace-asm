@@ -22,9 +22,10 @@ help:
 	@echo "build          - Build package"
 	@echo "clean          - Delete output files"
 	@echo "format         - Format code with black"
-	@echo "lint           - Lint code with black and pylint"
+	@echo "lint           - Lint code with black, pylint, and mypy"
 	@echo "lint-black     - Lint code with black"
 	@echo "lint-pylint    - Lint code with pylint"
+	@echo "lint-mypy      - Lint code with mypy"
 	@echo "test           - Run unit tests with pytest."
 	@echo "                 Use PYTEST_ARGS to override options"
 
