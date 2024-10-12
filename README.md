@@ -64,10 +64,10 @@ Keywords are case-insensitive.
 
 Comments may be on a separate line or may be inline. Comments start with `;`. Example:
 
-```
-: This a comment
+```assembly
+;This a comment
 push 'H' ;Stack = 'H'
-out      ;Output 'H'
+outc     ;Output 'H'
 ```
 
 ## Parameters
