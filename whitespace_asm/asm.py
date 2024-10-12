@@ -23,64 +23,81 @@ class WhitespaceInfo:
 
 
 # Whitespace characters white character name abbreviation
-SPACE = "S "
-TAB = "T\t"
-LF = "L\n"
+SPACE = " "
+TAB = "\t"
+LF = "\n"
 
 # Whitespace command families
 STACK = SPACE  # Stack Manipulation
-MATH = TAB + SPACE  # Arithmetic
-HEAP = TAB + TAB  # Heap Access
+MATH = f"{TAB}{SPACE}"  # Arithmetic
+HEAP = f"{TAB}{TAB}"  # Heap Access
 FLOW = LF  # Flow Control
-IO = TAB + LF  # I/O
+IO = f"{TAB}{LF}"  # I/O
 
 # Key is keyword, value is information about Whitespace command
 TRANSLATION_TABLE: dict[str, WhitespaceInfo] = {
     # Comment
     "": WhitespaceInfo(command=""),
     # Stack Manipulation
-    "push": WhitespaceInfo(command=STACK + SPACE, param_type=WhitespaceParamType.VALUE),
-    "dup": WhitespaceInfo(command=STACK + LF + SPACE),
-    "copy": WhitespaceInfo(command=STACK + TAB + SPACE, param_type=WhitespaceParamType.NUMBER),
-    "swap": WhitespaceInfo(command=STACK + LF + TAB),
-    "pop": WhitespaceInfo(command=STACK + LF + LF),
-    "slide": WhitespaceInfo(command=STACK + TAB + LF),
+    "push": WhitespaceInfo(command=f"{STACK}{SPACE}", param_type=WhitespaceParamType.VALUE),
+    "dup": WhitespaceInfo(command=f"{STACK}{LF}{SPACE}"),
+    "copy": WhitespaceInfo(command=f"{STACK}{TAB}{SPACE}", param_type=WhitespaceParamType.NUMBER),
+    "swap": WhitespaceInfo(command=f"{STACK}{LF}{TAB}"),
+    "pop": WhitespaceInfo(command=f"{STACK}{LF}{LF}"),
+    "slide": WhitespaceInfo(command=f"{STACK}{TAB}{LF}"),
     # Arithmetic
-    "add": WhitespaceInfo(command=MATH + SPACE + SPACE),
-    "sub": WhitespaceInfo(command=MATH + SPACE + TAB),
-    "mult": WhitespaceInfo(command=MATH + SPACE + LF),
-    "div": WhitespaceInfo(command=MATH + TAB + SPACE),
-    "mod": WhitespaceInfo(command=MATH + TAB + TAB),
+    "add": WhitespaceInfo(command=f"{MATH}{SPACE}{SPACE}"),
+    "sub": WhitespaceInfo(command=f"{MATH}{SPACE}{TAB}"),
+    "mult": WhitespaceInfo(command=f"{MATH}{SPACE}{LF}"),
+    "div": WhitespaceInfo(command=f"{MATH}{TAB}{SPACE}"),
+    "mod": WhitespaceInfo(command=f"{MATH}{TAB}{TAB}"),
     # Heap Access
-    "store": WhitespaceInfo(command=HEAP + SPACE),
-    "retr": WhitespaceInfo(command=HEAP + TAB),
+    "store": WhitespaceInfo(command=f"{HEAP}{SPACE}"),
+    "retr": WhitespaceInfo(command=f"{HEAP}{TAB}"),
     # Flow Control
-    "label": WhitespaceInfo(command=FLOW + SPACE + SPACE, param_type=WhitespaceParamType.LABEL),
-    "call": WhitespaceInfo(command=FLOW + SPACE + TAB, param_type=WhitespaceParamType.LABEL),
-    "jump": WhitespaceInfo(command=FLOW + SPACE + LF, param_type=WhitespaceParamType.LABEL),
-    "jumpz": WhitespaceInfo(command=FLOW + TAB + SPACE, param_type=WhitespaceParamType.LABEL),
-    "jumpn": WhitespaceInfo(command=FLOW + TAB + TAB, param_type=WhitespaceParamType.LABEL),
-    "ret": WhitespaceInfo(command=FLOW + TAB + LF),
-    "end": WhitespaceInfo(command=FLOW + LF + LF),
+    "label": WhitespaceInfo(command=f"{FLOW}{SPACE}{SPACE}", param_type=WhitespaceParamType.LABEL),
+    "call": WhitespaceInfo(command=f"{FLOW}{SPACE}{TAB}", param_type=WhitespaceParamType.LABEL),
+    "jump": WhitespaceInfo(command=f"{FLOW}{SPACE}{LF}", param_type=WhitespaceParamType.LABEL),
+    "jumpz": WhitespaceInfo(command=f"{FLOW}{TAB}{SPACE}", param_type=WhitespaceParamType.LABEL),
+    "jumpn": WhitespaceInfo(command=f"{FLOW}{TAB}{TAB}", param_type=WhitespaceParamType.LABEL),
+    "ret": WhitespaceInfo(command=f"{FLOW}{TAB}{LF}"),
+    "end": WhitespaceInfo(command=f"{FLOW}{LF}{LF}"),
     # I/O
-    "outc": WhitespaceInfo(command=IO + SPACE + SPACE),
-    "outn": WhitespaceInfo(command=IO + SPACE + TAB),
-    "inc": WhitespaceInfo(command=IO + TAB + SPACE),
-    "inn": WhitespaceInfo(command=IO + TAB + TAB),
+    "outc": WhitespaceInfo(command=f"{IO}{SPACE}{SPACE}"),
+    "outn": WhitespaceInfo(command=f"{IO}{SPACE}{TAB}"),
+    "inc": WhitespaceInfo(command=f"{IO}{TAB}{SPACE}"),
+    "inn": WhitespaceInfo(command=f"{IO}{TAB}{TAB}"),
 }
 
 
 def main(args: list | None = None):
     parser = argparse.ArgumentParser()
     parser.add_argument("input", help="path to the input Whitespace Assembly file")
-    parser.add_argument("-o", "--output", help="optional path to output Whitespace file")
+    parser.add_argument(
+        "-o",
+        "--output",
+        help=(
+            "optional path to output Whitespace file. If not specified, the input filename "
+            "is used with a '.ws' extension"
+        ),
+    )
+    parser.add_argument(
+        "-f",
+        "--format",
+        choices=["raw", "mark", "asm"],
+        default="mark",
+        help=(
+            "output format: 'raw' is just whitespace; 'mark' (default) whitespace is preceeded "
+            "by S (for space), T (for tab), and L (for newline), 'asm' puts the assembly "
+            "before each command and marks the whitespace as in 'mark'",
+        ),
+    )
     parsed_args = parser.parse_args(args)
 
     input_path = Path(parsed_args.input)
     input_contents = input_path.read_text(encoding="utf-8")
 
-    output_contents, errors = assemble(input_contents)
-
+    output_contents, errors = assemble(input_contents, parsed_args.format)
     if parsed_args.output:
         output_path = Path(parsed_args.output)
     else:
@@ -95,7 +112,7 @@ def main(args: list | None = None):
     output_path.write_text(output_contents, encoding="utf-8")
 
 
-def assemble(input_contents: str) -> tuple[str, list[str]]:
+def assemble(input_contents: str, format_type: str) -> tuple[str, list[str]]:
     output_contents = ""
     errors = []
     for line_num, line in enumerate(input_contents.splitlines(), start=1):
@@ -105,7 +122,7 @@ def assemble(input_contents: str) -> tuple[str, list[str]]:
         if error:
             errors.append(f"Line {line_num}: {error}")
         else:
-            output_contents += instruction
+            output_contents += format_command(format_type, instruction, command)
 
     return output_contents, errors
 
@@ -306,9 +323,33 @@ def translate_instruction(keyword: str, params: list[str]) -> tuple[str | None, 
     return instruction, error
 
 
-def format_comment(comment: str) -> str:
-    comment = comment.replace("' '", "'<space>'").replace(" ", "_").replace("\t", "_")
-    if not comment.endswith("_"):
-        comment += "_"
+def format_value(value: str) -> str:
+    value = value.replace("' '", "'<space>'").replace(" ", "_").replace("\t", "_")
+    if not value.endswith("_"):
+        value += "_"
 
-    return comment
+    return value
+
+
+def format_command(format_type: str, instruction: str, command: ParsedCommand) -> str:
+    output_contents = instruction
+    prefix = ""
+    if format_type in ["mark", "asm"]:
+        output_contents = (
+            output_contents.replace(SPACE, f"S{SPACE}")
+            .replace(TAB, f"T{TAB}")
+            .replace(LF, f"L{LF}")
+        )
+
+    if format_type == "asm":
+        prefix = "".join(
+            format_value(value)
+            for value in [
+                command.keyword,
+                command.params[0] if command.params else "",
+                command.comment,
+            ]
+            if value
+        )
+
+    return prefix + output_contents

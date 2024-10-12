@@ -7,42 +7,74 @@ from whitespace_asm import asm
 
 
 @pytest.mark.parametrize(
-    "input_filename,option,output_filename,expected_output_filename",
+    "input_filename,expected_output_filename",
     [
-        pytest.param("input.wsasm", "-o", "output.ws", "output.ws", id="input-o"),
-        pytest.param("input2.wsasm", "--out", "output.ws", "output.ws", id="input-out"),
-        pytest.param("hello-world.wsasm", "", "", "hello-world.ws", id="input-only"),
+        pytest.param("input.wsasm", "input.ws", id="input-o"),
+        pytest.param("input2.wsasm", "input2.ws", id="input-out"),
     ],
 )
-def test_main(
+def test_main_with_defaults(
     mock_assemble,
     input_filename: str,
-    option: str,
-    output_filename: str,
     expected_output_filename: str,
     in_temp_dir: Path,
 ):
     mock_assemble.return_value = ("Some output", [])
 
-    (in_temp_dir / input_filename).write_text("Some input", encoding="utf-8")
+    input_path = in_temp_dir / input_filename
+    input_path.write_text("Some input", encoding="utf-8")
 
-    args = [str(in_temp_dir / input_filename)]
-    if option:
-        args += [option, str(in_temp_dir / output_filename)]
+    asm.main([str(input_path)])
 
-    asm.main(args)
-
-    output_contents = (in_temp_dir / expected_output_filename).read_text(encoding="utf-8")
+    output_path = in_temp_dir / expected_output_filename
+    output_contents = output_path.read_text(encoding="utf-8")
     assert output_contents == "Some output"
+
+    mock_assemble.assert_called_once_with("Some input", "mark")
+
+
+@pytest.mark.parametrize(
+    "option,output_filename", [("-o", "output1.ws"), ("--output", "output2.ws")]
+)
+def test_main_with_output(mock_assemble, option: str, output_filename: str, in_temp_dir: Path):
+    mock_assemble.return_value = ("This output", [])
+
+    input_path = in_temp_dir / "this-file.wsasm"
+    input_path.write_text("This input", encoding="utf-8")
+
+    output_path = in_temp_dir / output_filename
+    asm.main([str(input_path), option, str(output_path)])
+
+    output_contents = output_path.read_text(encoding="utf-8")
+    assert output_contents == "This output"
+
+    mock_assemble.assert_called_once_with("This input", "mark")
+
+
+@pytest.mark.parametrize("option,format_type", [("-f", "raw"), ("--format", "mark"), ("-f", "asm")])
+def test_main_with_mark(mock_assemble, option: str, format_type: str, in_temp_dir: Path):
+    mock_assemble.return_value = ("My output", [])
+
+    input_path = in_temp_dir / "my-file.wsasm"
+    input_path.write_text("My input", encoding="utf-8")
+
+    asm.main([str(input_path), option, format_type])
+
+    output_path = in_temp_dir / "my-file.ws"
+    output_contents = output_path.read_text(encoding="utf-8")
+    assert output_contents == "My output"
+
+    mock_assemble.assert_called_once_with("My input", format_type)
 
 
 def test_main_with_errors(mock_assemble, in_temp_dir, capsys):
     mock_assemble.return_value = ("Something", ["4: Error1", "6: Error2"])
 
-    (in_temp_dir / "file.wsasm").write_text("Some input", encoding="utf-8")
+    input_path = in_temp_dir / "file.wsasm"
+    input_path.write_text("Some input", encoding="utf-8")
 
     with pytest.raises(SystemExit) as exc:
-        asm.main([str(in_temp_dir / "file.wsasm")])
+        asm.main([str(input_path)])
 
     assert exc.value.code != 0
     assert not (in_temp_dir / "file.ws").exists()
@@ -53,6 +85,8 @@ def test_main_with_errors(mock_assemble, in_temp_dir, capsys):
 6: Error2
 """
     assert expected_errors in err
+
+    mock_assemble.assert_called_once_with("Some input", "mark")
 
 
 @pytest.mark.parametrize(
@@ -433,7 +467,7 @@ def test_translate_instruction(
 
 
 @pytest.mark.parametrize(
-    "comment,expected_comment",
+    "value,expected_value",
     [
         pytest.param(";no", ";no_", id="no-space"),
         pytest.param("; This is a comment", ";_This_is_a_comment_", id="no-trailing space"),
@@ -447,8 +481,74 @@ def test_translate_instruction(
         pytest.param(";\tWhatever", ";_Whatever_", id="tab-no-trailing-space"),
     ],
 )
-def test_format_comment(comment, expected_comment):
-    assert asm.format_comment(comment) == expected_comment
+def test_format_value(value, expected_value):
+    assert asm.format_value(value) == expected_value
+
+
+@pytest.mark.parametrize(
+    "format_type,instruction,keyword,params,comment,expected_output",
+    [
+        pytest.param(
+            "raw", "STSTL", "what", ["ever"], "something", get_expected_result("STSTL"), id="raw"
+        ),
+        pytest.param(
+            "mark",
+            "TTSLTS",
+            "some",
+            ["thing"],
+            "comment",
+            f"T{asm.TAB}T{asm.TAB}S{asm.SPACE}L{asm.LF}T{asm.TAB}S{asm.SPACE}",
+            id="mark",
+        ),
+        pytest.param("asm", "", "", [], ";my comment", ";my_comment_", id="asm-comment"),
+        pytest.param(
+            "asm", "SLL", "pop", [], "", f"pop_S{asm.SPACE}L{asm.LF}L{asm.LF}", id="asm-keyword"
+        ),
+        pytest.param(
+            "asm",
+            "STL",
+            "swap",
+            [],
+            ";stack: a, b",
+            f"swap_;stack:_a,_b_S{asm.SPACE}T{asm.TAB}L{asm.LF}",
+            id="asm-keyword-comment",
+        ),
+        pytest.param(
+            "asm",
+            "LSSTSL",
+            "label",
+            ["10"],
+            "",
+            f"label_10_L{asm.LF}S{asm.SPACE}S{asm.SPACE}T{asm.TAB}S{asm.SPACE}L{asm.LF}",
+            id="asm-keyword-param-comment",
+        ),
+        pytest.param(
+            "asm",
+            "SSTSSSSL",
+            "push",
+            ["' '"],
+            ";some comment",
+            (
+                f"push_'<space>'_;some_comment_S{asm.SPACE}S{asm.SPACE}T{asm.TAB}"
+                f"S{asm.SPACE}S{asm.SPACE}S{asm.SPACE}S{asm.SPACE}L{asm.LF}"
+            ),
+            id="asm-keyword-param-comment",
+        ),
+    ],
+)
+def test_format_command(
+    format_type: str,
+    instruction: str,
+    keyword: str,
+    params: list[str],
+    comment: str,
+    expected_output,
+):
+    instruction = get_expected_result(instruction)
+    command = asm.ParsedCommand(keyword=keyword, params=params, comment=comment)
+    output = asm.format_command(format_type, instruction, command)
+
+    assert output == expected_output
 
 
 @pytest.fixture()

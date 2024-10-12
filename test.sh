@@ -1,6 +1,7 @@
 #!/bin/bash
 PACKAGE="whitespace_asm"
 META=".meta"
+ARGS=()
 if [ "$#" -lt 1 ]
 then
     ARGS=( \
@@ -15,4 +16,4 @@ then
 fi
 
 mkdir -p .meta
-poetry run pytest "${ARGS[@]}" test/
+poetry run pytest "${ARGS[@]}" "$@" test/

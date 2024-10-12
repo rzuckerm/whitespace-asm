@@ -105,7 +105,7 @@ Backslash may be used for characters like newline (`'\n'`). Examples of characte
 Assemble a Whitespace program:
 
 ```
-whitespace-asm <input> [-o/--out <output>]
+whitespace-asm <input> [-o/--output <output>] [-f/--format <format>]
 ```
 
 where:
@@ -113,6 +113,12 @@ where:
 - `<input>` is the path to the input Whitespace Assembly file
 - `<output>` is the optional path to output Whitespace file. If not specified,
   change the extension of `<input>` to `.ws`
+- `<format>` is the optional output format type:
+  - `raw`: just whitespace
+  - `mark` (default): whitespace is preceeded by `S` (space), `T` (tab), and `L`
+    (newline)
+  - `comment`: puts the assembly code before each command and marks the whitespace
+    as in `mark`
 
 Example:
 
