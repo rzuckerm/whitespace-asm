@@ -117,11 +117,9 @@ where:
   - `raw`: just whitespace
   - `mark` (default): whitespace is preceeded by `S` (space), `T` (tab), and `L`
     (newline)
-  - `comment`: puts the assembly code before each command and marks the whitespace
-    as in `mark`
 
 Example:
 
 ```
-whitespace-asm hello-world.wsasm hello-world.ws
+whitespace-asm hello-world.wsasm --output hello-world.ws
 ```

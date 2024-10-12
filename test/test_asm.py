@@ -51,7 +51,7 @@ def test_main_with_output(mock_assemble, option: str, output_filename: str, in_t
     mock_assemble.assert_called_once_with("This input", "mark")
 
 
-@pytest.mark.parametrize("option,format_type", [("-f", "raw"), ("--format", "mark"), ("-f", "asm")])
+@pytest.mark.parametrize("option,format_type", [("-f", "raw"), ("--format", "mark")])
 def test_main_with_mark(mock_assemble, option: str, format_type: str, in_temp_dir: Path):
     mock_assemble.return_value = ("My output", [])
 
@@ -467,88 +467,69 @@ def test_translate_instruction(
 
 
 @pytest.mark.parametrize(
-    "value,expected_value",
+    "format_type,instruction,expected_output",
     [
-        pytest.param(";no", ";no_", id="no-space"),
-        pytest.param("; This is a comment", ";_This_is_a_comment_", id="no-trailing space"),
-        pytest.param(";hi, there ", ";hi,_there_", id="trailing-space"),
-        pytest.param("; output ' '", ";_output_'<space>'_", id="space-char"),
-        pytest.param(
-            "; Output 'Hello, World, and welcome!'",
-            ";_Output_'Hello,_World,_and_welcome!'_",
-            id="space-string",
-        ),
-        pytest.param(";\tWhatever", ";_Whatever_", id="tab-no-trailing-space"),
-    ],
-)
-def test_format_value(value, expected_value):
-    assert asm.format_value(value) == expected_value
-
-
-@pytest.mark.parametrize(
-    "format_type,instruction,keyword,params,comment,expected_output",
-    [
-        pytest.param(
-            "raw", "STSTL", "what", ["ever"], "something", get_expected_result("STSTL"), id="raw"
-        ),
+        pytest.param("raw", "STSTL", get_expected_result("STSTL"), id="raw"),
         pytest.param(
             "mark",
             "TTSLTS",
-            "some",
-            ["thing"],
-            "comment",
             f"T{asm.TAB}T{asm.TAB}S{asm.SPACE}L{asm.LF}T{asm.TAB}S{asm.SPACE}",
             id="mark",
         ),
-        pytest.param("asm", "", "", [], ";my comment", ";my_comment_", id="asm-comment"),
-        pytest.param(
-            "asm", "SLL", "pop", [], "", f"pop_S{asm.SPACE}L{asm.LF}L{asm.LF}", id="asm-keyword"
-        ),
-        pytest.param(
-            "asm",
-            "STL",
-            "swap",
-            [],
-            ";stack: a, b",
-            f"swap_;stack:_a,_b_S{asm.SPACE}T{asm.TAB}L{asm.LF}",
-            id="asm-keyword-comment",
-        ),
-        pytest.param(
-            "asm",
-            "LSSTSL",
-            "label",
-            ["10"],
-            "",
-            f"label_10_L{asm.LF}S{asm.SPACE}S{asm.SPACE}T{asm.TAB}S{asm.SPACE}L{asm.LF}",
-            id="asm-keyword-param-comment",
-        ),
-        pytest.param(
-            "asm",
-            "SSTSSSSL",
-            "push",
-            ["' '"],
-            ";some comment",
-            (
-                f"push_'<space>'_;some_comment_S{asm.SPACE}S{asm.SPACE}T{asm.TAB}"
-                f"S{asm.SPACE}S{asm.SPACE}S{asm.SPACE}S{asm.SPACE}L{asm.LF}"
-            ),
-            id="asm-keyword-param-comment",
-        ),
     ],
 )
-def test_format_command(
-    format_type: str,
-    instruction: str,
-    keyword: str,
-    params: list[str],
-    comment: str,
-    expected_output,
-):
+def test_format_instruction(format_type: str, instruction: str, expected_output: str):
     instruction = get_expected_result(instruction)
-    command = asm.ParsedCommand(keyword=keyword, params=params, comment=comment)
-    output = asm.format_command(format_type, instruction, command)
+    output = asm.format_instruction(format_type, instruction)
 
     assert output == expected_output
+
+
+def get_example_params() -> list[pytest.param]:
+    params = []
+    for dir_path in Path("examples").iterdir():
+        if dir_path.name == "bad":
+            continue
+
+        base_path = dir_path / dir_path.name
+        params += [
+            pytest.param(
+                Path(f"{base_path}.wsasm"),
+                format_type,
+                Path(f"{base_path}{ext}"),
+                id=f"{dir_path.name}-{format_type}",
+            )
+            for format_type, ext in [("raw", ".ws.raw"), ("mark", ".ws")]
+        ]
+
+    return params
+
+
+@pytest.mark.parametrize("input_path,format_type,expected_output_path", get_example_params())
+def test_assemble(input_path: Path, format_type: str, expected_output_path: Path):
+    input_contents = input_path.read_text(encoding="utf-8")
+    output_contents, errors = asm.assemble(input_contents, format_type)
+
+    expected_output_contents = expected_output_path.read_text(encoding="utf-8")
+    assert output_contents == expected_output_contents
+    assert not errors
+
+
+def test_assemble_bad():
+    input_contents = Path("examples/bad/bad.wsasm").read_text(encoding="utf-8")
+    output_contents, errors = asm.assemble(input_contents, "raw")
+
+    assert not output_contents
+
+    expected_errors = [
+        "Line 2: Invalid instruction junk",
+        "Line 4: Expected 1 parameter for push, but got 0",
+        "Line 5: Expected number, but got 'H' instead",
+        "Line 6: Expected zeros and ones, but got 123 instead",
+        "Line 8: Expected no parameters for pop, but got 1",
+        "Line 9: Expected 1 parameter for push, but got 2",
+    ]
+    assert errors == expected_errors
 
 
 @pytest.fixture()

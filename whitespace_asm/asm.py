@@ -84,12 +84,11 @@ def main(args: list | None = None):
     parser.add_argument(
         "-f",
         "--format",
-        choices=["raw", "mark", "asm"],
+        choices=["raw", "mark"],
         default="mark",
         help=(
             "output format: 'raw' is just whitespace; 'mark' (default) whitespace is preceeded "
-            "by S (for space), T (for tab), and L (for newline), 'asm' puts the assembly "
-            "before each command and marks the whitespace as in 'mark'",
+            "by S (space), T (tab), and L (newline)",
         ),
     )
     parsed_args = parser.parse_args(args)
@@ -122,7 +121,10 @@ def assemble(input_contents: str, format_type: str) -> tuple[str, list[str]]:
         if error:
             errors.append(f"Line {line_num}: {error}")
         else:
-            output_contents += format_command(format_type, instruction, command)
+            output_contents += format_instruction(format_type, instruction)
+
+    if errors:
+        output_contents = ""
 
     return output_contents, errors
 
@@ -323,33 +325,13 @@ def translate_instruction(keyword: str, params: list[str]) -> tuple[str | None, 
     return instruction, error
 
 
-def format_value(value: str) -> str:
-    value = value.replace("' '", "'<space>'").replace(" ", "_").replace("\t", "_")
-    if not value.endswith("_"):
-        value += "_"
-
-    return value
-
-
-def format_command(format_type: str, instruction: str, command: ParsedCommand) -> str:
+def format_instruction(format_type: str, instruction: str) -> str:
     output_contents = instruction
-    prefix = ""
-    if format_type in ["mark", "asm"]:
+    if format_type == "mark":
         output_contents = (
             output_contents.replace(SPACE, f"S{SPACE}")
             .replace(TAB, f"T{TAB}")
             .replace(LF, f"L{LF}")
         )
 
-    if format_type == "asm":
-        prefix = "".join(
-            format_value(value)
-            for value in [
-                command.keyword,
-                command.params[0] if command.params else "",
-                command.comment,
-            ]
-            if value
-        )
-
-    return prefix + output_contents
+    return output_contents
