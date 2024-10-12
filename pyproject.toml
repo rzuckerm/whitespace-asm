@@ -20,13 +20,14 @@ whitespace-asm = "whitespace_asm.asm:main"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-whitespace = "1.0.0b8"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.8.0"
 pytest = "^8.3.3"
 pytest-cov = "^5.0.0"
 coverage = "^7.6.1"
+pylint = "^3.3.1"
+mypy = "^1.11.2"
 
 [build-system]
 requires = ["poetry-core"]
@@ -34,3 +35,13 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length = 100
+
+[tool.pylint.format]
+max-line-length = 100
+
+[tool.pylint.message]
+disable = [
+    "missing-module-docstring",
+    "missing-class-docstring",
+    "missing-function-docstring",
+]

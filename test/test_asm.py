@@ -305,10 +305,7 @@ def test_parse_param(
     assert error == expected_error
 
 
-def get_expected_result(result: str | None) -> str | None:
-    if result is None:
-        return None
-
+def get_expected_result(result: str):
     return result.replace("S", asm.SPACE).replace("T", asm.TAB).replace("L", asm.LF)
 
 
@@ -456,7 +453,9 @@ def test_translate_instruction(
 ):
     instruction, error = asm.translate_instruction(keyword, params)
 
-    expected_instruction = get_expected_result(expected_instruction)
+    expected_instruction = (
+        get_expected_result(expected_instruction) if expected_instruction is not None else None
+    )
     assert instruction == expected_instruction
     assert error == expected_error
 
@@ -485,7 +484,7 @@ def test_format_instruction(format_type: str, instruction: str, expected_output:
     assert output == expected_output
 
 
-def get_example_params() -> list[pytest.param]:
+def get_example_params() -> list:
     params = []
     for dir_path in Path("examples").iterdir():
         if dir_path.name == "bad":

@@ -88,7 +88,7 @@ def main(args: list | None = None):
         default="mark",
         help=(
             "output format: 'raw' is just whitespace; 'mark' (default) whitespace is preceeded "
-            "by S (space), T (tab), and L (newline)",
+            "by S (space), T (tab), and L (newline)"
         ),
     )
     parsed_args = parser.parse_args(args)
@@ -118,7 +118,7 @@ def assemble(input_contents: str, format_type: str) -> tuple[str, list[str]]:
         tokens = tokenize_line(line)
         command = parse_tokens(tokens)
         instruction, error = translate_instruction(command.keyword, command.params)
-        if error:
+        if instruction is None:
             errors.append(f"Line {line_num}: {error}")
         else:
             output_contents += format_instruction(format_type, instruction)
@@ -241,7 +241,7 @@ def parse_string(param: str) -> str | None:
 
 
 def parse_value(param: str) -> int | str | None:
-    result = parse_number(param)
+    result: int | str | None = parse_number(param)
     if result is None:
         result = parse_string(param)
         if result is not None and len(result) != 1:
@@ -292,7 +292,7 @@ def translate_label(param: str) -> str:
 
 def translate_param(param: int | str, param_type: WhitespaceParamType) -> str:
     if param_type == WhitespaceParamType.LABEL:
-        return translate_label(param)
+        return translate_label(param)  # type: ignore
 
     if isinstance(param, int):
         return translate_number(param)
@@ -315,7 +315,7 @@ def translate_instruction(keyword: str, params: list[str]) -> tuple[str | None, 
     else:
         if num_params:
             value, error = parse_param(params[0], translation_info.param_type)
-            if not error:
+            if value is not None:
                 instruction = translation_info.command + translate_param(
                     value, translation_info.param_type
                 )
