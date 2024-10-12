@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "whitespace-asm"
-version = "1.0.0"
+version = "1.0.1"
 description = "Assembler for the Whitespace Programming Language"
 authors = ["rzuckerm"]
 readme = "README.md"

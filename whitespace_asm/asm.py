@@ -44,7 +44,7 @@ TRANSLATION_TABLE: dict[str, WhitespaceInfo] = {
     "copy": WhitespaceInfo(command=f"{STACK}{TAB}{SPACE}", param_type=WhitespaceParamType.NUMBER),
     "swap": WhitespaceInfo(command=f"{STACK}{LF}{TAB}"),
     "pop": WhitespaceInfo(command=f"{STACK}{LF}{LF}"),
-    "slide": WhitespaceInfo(command=f"{STACK}{TAB}{LF}"),
+    "slide": WhitespaceInfo(command=f"{STACK}{TAB}{LF}", param_type=WhitespaceParamType.NUMBER),
     # Arithmetic
     "add": WhitespaceInfo(command=f"{MATH}{SPACE}{SPACE}"),
     "sub": WhitespaceInfo(command=f"{MATH}{SPACE}{TAB}"),

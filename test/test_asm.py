@@ -353,7 +353,7 @@ def test_translate_param(
             f"Expected 1 parameter for {keyword}, but got {len(params)}",
             id=f"{keyword}-{id_suffix}",
         )
-        for keyword in ["push", "copy", "label", "call", "jump", "jumpz", "jumpn"]
+        for keyword in ["push", "copy", "slide", "label", "call", "jump", "jumpz", "jumpn"]
         for params, id_suffix in [([], "too-few"), (["1", "'x'"], "too-many")]
     ]
     + [
@@ -368,7 +368,6 @@ def test_translate_param(
             "dup",
             "swap",
             "pop",
-            "slide",
             "add",
             "sub",
             "div",
@@ -389,7 +388,6 @@ def test_translate_param(
         pytest.param("dup", [], "SLS", "", id="dup"),
         pytest.param("swap", [], "SLT", "", id="swap"),
         pytest.param("pop", [], "SLL", "", id="pop"),
-        pytest.param("slide", [], "STL", "", id="slide"),
         pytest.param("add", [], "TSSS", "", id="add"),
         pytest.param("sub", [], "TSST", "", id="sub"),
         pytest.param("mult", [], "TSSL", "", id="mult"),
@@ -417,6 +415,11 @@ def test_translate_param(
         pytest.param("copy", ["-7"], "STSTTTTL", "", id="copy-neg-num"),
         pytest.param(
             "copy", ["'X'"], None, "Expected number, but got 'X' instead", id="copy-invalid"
+        ),
+        pytest.param("slide", ["2"], "STLSTSL", "", id="slide-pos-num"),
+        pytest.param("slide", ["-4"], "STLTTSSL", "", id="slide-neg-num"),
+        pytest.param(
+            "slide", ["Y"], None, "Expected number, but got Y instead", id="slide-invalid"
         ),
         pytest.param("label", ["0101"], "LSSSTSTL", "", id="label-valid"),
         pytest.param(
