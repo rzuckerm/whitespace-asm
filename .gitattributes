@@ -1,0 +1,3 @@
+*.ws linguist-language=whitespace
+*.ws.raw linguist-language=whitespace
+*.wsasm linguist-language=assembly

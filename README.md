@@ -1,4 +1,8 @@
 [![Makefile CI](https://github.com/rzuckerm/whitespace-asm/actions/workflows/makefile.yml/badge.svg)](https://github.com/rzuckerm/whitespace-asm/actions/workflows/makefile.yml)
+[![PyPI version](https://img.shields.io/pypi/v/whitespace-asm)](https://pypi.org/project/whitespace-asm)
+[![Python versions](https://img.shields.io/pypi/pyversions/whitespace-asm)](https://pypi.org/project/whitespace-asm)
+[![Python wheel](https://img.shields.io/pypi/wheel/whitespace-asm)](https://pypi.org/project/whitespace-asm)
+
 # whitespace-asm
 
 Assembler for the [Whitespace](https://en.wikipedia.org/wiki/Whitespace_(programming_language))
@@ -14,52 +18,52 @@ Keywords are case-insensitive.
 
 ### Stack Manipulation
 
-| Mnemonic | Parameter  | Description                                                                      |
-| -------- | ---------- | -------------------------------------------------------------------------------- |
-| `push`   | `<value>`  | Push the value onto the stack                                                    |
-| `dup`    |            | Duplicate the top item on the stack                                              |
-| `copy`   | `<number>` | Copy the nth item on the stack (given by the argument) onto the top of the stack |
-| `swap`   |            | Swap the top two items on the stack                                              |
-| `pop`    |            | Discard the top item on the stack                                                |
-| `slide`  | `<number>` | Slide n items off the stack, keeping the top item                                |
+| Keyword | Parameter  | Description                                                                      |
+| ------- | ---------- | -------------------------------------------------------------------------------- |
+| `push`  | `<value>`  | Push the value onto the stack                                                    |
+| `dup`   |            | Duplicate the top item on the stack                                              |
+| `copy`  | `<number>` | Copy the nth item on the stack (given by the argument) onto the top of the stack |
+| `swap`  |            | Swap the top two items on the stack                                              |
+| `pop`   |            | Discard the top item on the stack                                                |
+| `slide` | `<number>` | Slide n items off the stack, keeping the top item                                |
 
 ### Arithmetic
 
-| Mnemonic | Parameter  | Description                                                                      |
-| -------- | ---------- | -------------------------------------------------------------------------------- |
-| `add`    |            | Addition                                                                         |
-| `sub`    |            | Subtraction                                                                      |
-| `mult`   |            | Multiplication                                                                   |
-| `div`    |            | Integer Division                                                                 |
-| `mod`    |            | Modulo                                                                           |
+| Keyword | Parameter  | Description                                                                      |
+| ------- | ---------- | -------------------------------------------------------------------------------- |
+| `add`   |            | Addition                                                                         |
+| `sub`   |            | Subtraction                                                                      |
+| `mult`  |            | Multiplication                                                                   |
+| `div`   |            | Integer Division                                                                 |
+| `mod`   |            | Modulo                                                                           |
 
 ### Heap Access
 
-| Mnemonic | Parameter  | Description                                                                      |
-| -------- | ---------- | -------------------------------------------------------------------------------- |
-| `store`  |            | Store                                                                            |
-| `retr`   |            | Retreive                                                                         |
+| Keyword | Parameter  | Description                                                                      |
+| ------- | ---------- | -------------------------------------------------------------------------------- |
+| `store` |            | Store                                                                            |
+| `retr`  |            | Retreive                                                                         |
 
 ### Flow Control
 
-| Mnemonic | Parameter  | Description                                                                      |
-| -------- | ---------- | -------------------------------------------------------------------------------- |
-| `label`  | `<label>`  | Mark a location in the program                                                   |
-| `call`   | `<label>`  | Call a subroutine                                                                |
-| `jump`   | `<label>`  | Jump unconditionally to a label                                                  |
-| `jumpz`  | `<label>`  | Jump to a label if the top of the stack is zero                                  |
-| `jumpn`  | `<label>`  | Jump to a label if the top of the stack is negative                              |
-| `ret`    |            | End a subroutine and transfer control back to the caller                         |
-| `end`    |            | End the program                                                                  |
+| Keyword | Parameter  | Description                                                                      |
+| ------- | ---------- | -------------------------------------------------------------------------------- |
+| `label` | `<label>`  | Mark a location in the program                                                   |
+| `call`  | `<label>`  | Call a subroutine                                                                |
+| `jump`  | `<label>`  | Jump unconditionally to a label                                                  |
+| `jumpz` | `<label>`  | Jump to a label if the top of the stack is zero                                  |
+| `jumpn` | `<label>`  | Jump to a label if the top of the stack is negative                              |
+| `ret`   |            | End a subroutine and transfer control back to the caller                         |
+| `end`   |            | End the program                                                                  |
 
 ### I/O
 
-| Mnemonic   | Parameter  | Description                                                                      |
-| ---------- | ---------- | -------------------------------------------------------------------------------- |
-| `outc`     |            | Output the character at the top of the stack                                     |
-| `outn`     |            | Output the number at the top of the stack                                        |
-| `inc`      |            | Read a character and place it in the location given by the top of the stack      |
-| `inn`      |            | Read a number and place it in the location given by the top of the stack         |
+| Keyword  | Parameter  | Description                                                                      |
+| -------- | ---------- | -------------------------------------------------------------------------------- |
+| `outc`   |            | Output the character at the top of the stack                                     |
+| `outn`   |            | Output the number at the top of the stack                                        |
+| `inc`    |            | Read a character and place it in the location given by the top of the stack      |
+| `inn`    |            | Read a number and place it in the location given by the top of the stack         |
 
 ### Comments
 
