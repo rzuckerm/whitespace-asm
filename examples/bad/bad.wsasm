@@ -1,0 +1,9 @@
+;Bad commands
+junk        ;Bad command
+outn        ;Good command
+push        ;Too few params
+copy 'H'    ;Bad param
+label 123   ;Bad label
+add         ;Good command
+pop 42      ;Too many params
+push 'x' 4  ;Too many params
