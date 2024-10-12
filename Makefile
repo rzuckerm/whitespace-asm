@@ -47,7 +47,7 @@ clean:
 	rm -rf $(PACKAGE)/__pycache__/ \
 		$(TESTS)/__pycache__/ \
 		$(META)/ \
-		.pytest_cache/ \
+		.*_cache/ \
 		dist
 	rm -f .coverage .coverage.*
 
