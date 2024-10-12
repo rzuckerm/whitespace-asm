@@ -1,0 +1,24 @@
+name: Publish CI
+
+on:
+  push:
+    # Publish semver tags as releases.
+    tags: [ 'v*' ]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - uses: abatilo/actions-poetry@v3
+        with:
+          poetry-version: 1.8.3
+
+      - name: Publish to pypi
+        run: poetry config pypi-token.pypi "${{secrets.PYPI_TOKEN}}" && poetry publish --build

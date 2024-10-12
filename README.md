@@ -1,3 +1,4 @@
+[![Makefile CI](https://github.com/rzuckerm/whitespace-asm/actions/workflows/makefile.yml/badge.svg)](https://github.com/rzuckerm/whitespace-asm/actions/workflows/makefile.yml)
 # whitespace-asm
 
 Assembler for the [Whitespace](https://en.wikipedia.org/wiki/Whitespace_(programming_language))
