@@ -1,3 +1,3 @@
-*.ws linguist-language=text
-*.ws.raw linguist-language=text
-*.wsasm linguist-language=assembly
+*.ws linguist-language=Text
+*.ws.raw linguist-language=Text
+*.wsasm linguist-language=Assembly
