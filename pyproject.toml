@@ -45,3 +45,6 @@ disable = [
     "missing-class-docstring",
     "missing-function-docstring",
 ]
+
+[tool.coverage.report]
+fail_under = 100
