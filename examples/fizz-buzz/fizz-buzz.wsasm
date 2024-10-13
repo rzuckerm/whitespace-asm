@@ -1,0 +1,49 @@
+;Output Fizz Buzz from 1 to 100
+push 1      ;stack: n=1
+label 0
+  push 1    ;Indicate no output, stack: n, flag=1
+  push 'i'  ;stack: n, flag, 'i'
+  push 'F'  ;stack: n, flag, 'i', 'F'
+  push 3    ;stack: n, flag, 'i', 'F', 3
+  call 10   ;if n%3==0, output 'Fizz', flag=0
+            ;stack: n, flag
+  push 'u'  ;stack: n, flag, 'u'
+  push 'B'  ;stack: n, flag, 'u', 'B'
+  push 5    ;stack: n, flag, 'u', 'B', 5
+  call 10   ;if n%5==0, output 'Buzz', flag 0
+            ;stack: flag, n
+  jumpz 1   ;jump to label 1 if flag==0, stack: n
+  dup       ;output n
+  outn
+label 1
+  push '\n' ;output '\n'
+  outc
+  push 1    ;stack: n, 1
+  add       ;stack: n+1
+  dup       ;stack: n+1, n+1
+  push 101  ;stack: n+1, n+1, 101
+  sub       ;stack: n+1, n-100
+  jumpn 0   ;jump to label 0 if n<100, stack: n=n+1
+  end
+
+;If n%div == 0, output letter1, letter2, 'zz' and set flag to 0
+;input stack: n, flag, letter2, letter1, div
+;output stack: n, flag
+label 10
+  copy 4    ;stack: n, flag, letter2, letter1, div, n
+  swap      ;stack: n, flag, letter2, letter1, n, div
+  mod       ;stack: n, flag, letter2, letter1, n%div
+  jumpz 11  ;jump to label 11 if n%div==0, stack: n, flag, letter2, letter1
+  pop       ;stack: n, flag, letter2
+  pop       ;stack: n, flag
+  ret
+label 11
+  outc      ;output letter1, stack: n, flag, letter2
+  outc      ;output letter2, stack: n, flag
+  push 'z'  ;output 'z'
+  outc
+  push 'z'  ;output 'z'
+  outc
+  pop       ;stack: n
+  push 0    ;stack: n, flag=0
+  ret
